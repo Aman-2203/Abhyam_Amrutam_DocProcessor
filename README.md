@@ -86,7 +86,7 @@ AAS_CLONE/
 │   ├── feature.html       # Features page
 │   ├── pricing.html       # Pricing information
 │   └── contactus.html     # Contact page
-├── static/                 # Static assets (CSS, JS, images)
+├── static/                 # Tral Helper
 ├── uploads/                # Temporary file uploads
 └── outputs/                # Processed documents
 ```
