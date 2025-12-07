@@ -1,5 +1,7 @@
 import os
 import threading
+import atexit
+from concurrent.futures import ThreadPoolExecutor
 import uuid
 import logging
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
@@ -45,6 +47,25 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 # Start OTP cleanup thread
 start_otp_cleanup_thread()
 
+# ==============================================================
+# GLOBAL THREAD POOL FOR GEMINI API (40 WORKERS)
+# This pool is shared by ALL users to control concurrency
+# and prevent rate limit issues with paid tier
+# ==============================================================
+GLOBAL_GEMINI_EXECUTOR = ThreadPoolExecutor(
+    max_workers=40,
+    thread_name_prefix="gemini_worker"
+)
+
+# Cleanup executor on application shutdown
+def cleanup_executor():
+    logger.info("Shutting down global Gemini executor...")
+    GLOBAL_GEMINI_EXECUTOR.shutdown(wait=True)
+    logger.info("Executor shutdown complete")
+
+atexit.register(cleanup_executor)
+logger.info(f"Initialized global Gemini executor with 40 workers")
+
 
 def process_document_background(job_id, mode, input_path, language, source_lang, target_lang, original_filename, user_email='', user_prompt=''):
     """Background processing function"""
@@ -68,7 +89,7 @@ def process_document_background(job_id, mode, input_path, language, source_lang,
             ocr = OCRProcessor(vision_api_key, job_id)
             text = ocr.perform_ocr(input_path)
             text = text.replace('\n', '\r')
-            proofreader = ProofreadingProcessor(gemini_api_key, job_id=job_id)
+            proofreader = ProofreadingProcessor(gemini_api_key, job_id=job_id, executor=GLOBAL_GEMINI_EXECUTOR)
             chunks = proofreader.chunk_text(text)
             corrected_chunks = proofreader.process_chunks_parallel(
                 chunks,
@@ -83,7 +104,7 @@ def process_document_background(job_id, mode, input_path, language, source_lang,
             # Proofread Only
             content = DocumentHandler.read_docx(input_path)
             
-            proofreader = ProofreadingProcessor(gemini_api_key, job_id=job_id)
+            proofreader = ProofreadingProcessor(gemini_api_key, job_id=job_id, executor=GLOBAL_GEMINI_EXECUTOR)
             chunks = proofreader.chunk_text(content)
             corrected_chunks = proofreader.process_chunks_parallel(
                 chunks,
@@ -100,7 +121,7 @@ def process_document_background(job_id, mode, input_path, language, source_lang,
             ocr = OCRProcessor(vision_api_key, job_id)
             text = ocr.perform_ocr(input_path)
             
-            translator = TranslationProcessor(gemini_api_key, job_id=job_id)
+            translator = TranslationProcessor(gemini_api_key, job_id=job_id, executor=GLOBAL_GEMINI_EXECUTOR)
             chunks = translator.chunk_text(text)
             translated_chunks = translator.process_chunks_parallel(
                 chunks,
@@ -116,7 +137,7 @@ def process_document_background(job_id, mode, input_path, language, source_lang,
             # Translation Only
             content = DocumentHandler.read_docx(input_path)
             
-            translator = TranslationProcessor(gemini_api_key, job_id=job_id)
+            translator = TranslationProcessor(gemini_api_key, job_id=job_id, executor=GLOBAL_GEMINI_EXECUTOR)
             chunks = translator.chunk_text(content)
             translated_chunks = translator.process_chunks_parallel(
                 chunks,
@@ -165,7 +186,7 @@ def process_document_background(job_id, mode, input_path, language, source_lang,
 
 @app.route("/")
 def initialize():
-    return render_template('feature.html')
+    return render_template('feature.html')  
 
 @app.route('/login')
 def login():
@@ -210,7 +231,7 @@ def verify_otp_route():
         # Verify OTP
         success, message = verify_otp(email, otp)
         
-        if success:
+        if success: 
             # Create session
             session['user_email'] = email
             session.permanent = True
