@@ -27,14 +27,15 @@ logger = logging.getLogger(__name__)
 class DocumentProcessor:
     """Base class for document processing operations"""
     
-    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None):
+    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None, executor=None):
         self.gemini_api_key = gemini_api_key
         genai.configure(api_key=gemini_api_key)
         self.max_workers = max_workers
         self.rate_limit_lock = threading.Lock()
         self.last_request_time = 0
-        self.min_request_interval = 0.2
+        self.min_request_interval = 0.05  # Reduced for paid tier
         self.job_id = job_id
+        self.executor = executor  # External executor (global thread pool)
     
     def update_progress(self, current: int, total: int, status: str):
         """Update progress for the job"""
@@ -94,11 +95,17 @@ class DocumentProcessor:
         return process_func(*args)
     
     def process_chunks_parallel(self, chunks: List[str], process_func, operation_name: str = "Processing"):
-        """Process chunks in parallel with progress tracking"""
+        """Process chunks in parallel with progress tracking.
+        Uses global executor if provided, otherwise creates a temporary one.
+        """
         results = [None] * len(chunks)
         total = len(chunks)
         
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        # Use provided executor (global pool) or create temporary one
+        use_global = self.executor is not None
+        executor = self.executor if use_global else ThreadPoolExecutor(max_workers=self.max_workers)
+        
+        try:
             future_to_index = {
                 executor.submit(self.process_with_rate_limit, process_func, chunk): i 
                 for i, chunk in enumerate(chunks)
@@ -127,6 +134,10 @@ class DocumentProcessor:
                     else:
                         logger.warning(f"Error on chunk {index + 1}: {e}")
                         results[index] = chunks[index]
+        finally:
+            # Only shutdown if we created a temporary executor
+            if not use_global:
+                executor.shutdown(wait=False)
         
         return results
 
@@ -134,8 +145,8 @@ class DocumentProcessor:
 class ProofreadingProcessor(DocumentProcessor):
     """Handles AI-powered proofreading"""
     
-    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None):
-        super().__init__(gemini_api_key, max_workers, job_id)
+    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None, executor=None):
+        super().__init__(gemini_api_key, max_workers, job_id, executor)
         self.model = genai.GenerativeModel('gemini-2.5-pro')
 
     def proofread_chunk(self, text_chunk: str, language: str) -> str:
@@ -239,8 +250,8 @@ CORRECTED_TEXT:
 class TranslationProcessor(DocumentProcessor):
     """Handles AI-powered translation"""
     
-    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None):
-        super().__init__(gemini_api_key, max_workers, job_id)
+    def __init__(self, gemini_api_key: str, max_workers: int = 5, job_id: str = None, executor=None):
+        super().__init__(gemini_api_key, max_workers, job_id, executor)
         self.model = genai.GenerativeModel('gemini-2.5-pro')
         
         self.translation_prompt = """You are a master translator and literary stylist specializing in texts with high cultural and religious specificity. Your primary goal is to produce a polished, high-register {target_lang} translation that prioritizes natural flow, contextual dignity, and cultural resonance for the specified audience, moving far beyond literal or word-for-word rendering.
