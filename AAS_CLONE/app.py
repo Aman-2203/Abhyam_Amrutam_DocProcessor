@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # Pricing Configuration (Rs. per page)
 PRICING = {
     1: 3,  # OCR
-    2: 9,  # OCR + Proofread (3 + 6)
-    3: 6,  # Proofread
-    4: 9,  # OCR + Translation (3 + 6)
-    5: 6   # Translation
+    2: 10,  # OCR + Proofread (3 + 7)
+    3: 7,  # Proofread
+    4: 10,  # OCR + Translation (3 + 7)
+    5: 7   # Translation
 }
 
 # Flask app setup
@@ -610,3 +610,4 @@ if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     app.run(debug=False, host='0.0.0.0', port=8080)
+
