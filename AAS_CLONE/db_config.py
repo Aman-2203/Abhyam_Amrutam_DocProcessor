@@ -4,6 +4,9 @@ from pymongo.errors import ConnectionFailure
 import logging
 
 logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 # MongoDB connection
 MONGODB_URI = os.getenv('MONGODB_URI')
@@ -44,3 +47,4 @@ def get_trial_usage_collection():
     """Get trial usage collection"""
     db = get_database()
     return db.trial_usage
+
