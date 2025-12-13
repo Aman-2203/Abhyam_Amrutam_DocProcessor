@@ -22,6 +22,10 @@ from utils import (
 )
 from payment_handler import payment_handler
 
+from dotenv import load_dotenv
+
+load_dotenv() 
+
 
 logger = logging.getLogger(__name__)
 
@@ -610,4 +614,5 @@ if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     app.run(debug=False, host='0.0.0.0', port=8080)
+
 
