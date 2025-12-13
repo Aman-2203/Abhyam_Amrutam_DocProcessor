@@ -13,6 +13,11 @@ import logging
 
 from db_config import get_user_collection, get_trial_usage_collection
 
+from dotenv import load_dotenv
+
+load_dotenv() 
+
+
 logger = logging.getLogger(__name__)
 
 # OTP storage: {email: {'otp': '123456', 'timestamp': datetime}}
@@ -221,3 +226,4 @@ def trial_required(mode):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
