@@ -3,6 +3,9 @@ import logging
 import razorpay
 from datetime import datetime
 from db_config import get_database
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 logger = logging.getLogger(__name__)
 
@@ -188,3 +191,4 @@ class PaymentHandler:
 
 # Singleton instance
 payment_handler = PaymentHandler()
+
