@@ -66,34 +66,6 @@ python app.py
 The application will be available at `http://localhost:8080`
 
 
-## Project Structure
-
-```
-AAS_CLONE/
-├── app.py                  # Main Flask application
-├── auth.py                 # Authentication and OTP handling
-├── config.py               # Configuration and constants
-├── db_config.py            # MongoDB connection setup
-├── document_handler.py     # Document processing orchestration
-├── payment_handler.py      # Razorpay payment integration
-├── processors.py           # AI processing classes (Proofreading, Translation, OCR)
-├── utils.py                # Utility functions for document manipulation
-├── requirements.txt        # Python dependencies
-├── .env                    # Environment variables (not in git)
-├── templates/              # HTML templates
-│   ├── index.html         # Main processing interface
-│   ├── login.html         # Login page
-│   ├── feature.html       # Features page
-│   ├── pricing.html       # Pricing information
-│   └── contactus.html     # Contact page
-├── static/                 # Tral Helper
-├── uploads/                # Temporary file uploads
-└── outputs/                # Processed documents
-```
-
-
-
-
 ## API Endpoints
 
 ### Authentication
